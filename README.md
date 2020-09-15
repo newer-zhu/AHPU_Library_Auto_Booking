@@ -5,3 +5,5 @@
 - Seat是核心代码文件
 - Test是测试文件，没有用
 
+Seat逻辑
+![Seat](https://github.com/newer-zhu/AHPU_Library_Aotu_Booking/raw/master/img/Seat.png)
