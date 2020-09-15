@@ -1,4 +1,5 @@
 import Seat
+# 直接运行就行了，可以自己设置一个定时任务，基本百分百中
 class major:
     if __name__ == '__main__':
         print("输入用户名：学号")
