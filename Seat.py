@@ -12,8 +12,8 @@ import time
 class Auto_Occupy(object):
     def __init__(self,username,password):
         # 浏览器对象
-        # option = webdriver.ChromeOptions
-        # option.headless
+        option = webdriver.ChromeOptions
+        option.headless = True
         self.browser = webdriver.Chrome()
         self.username = username
         self.password = password
@@ -86,18 +86,21 @@ class Auto_Occupy(object):
 
     # 选择条件
     def choose(self,begin,over):
-        lib = self.browser.find_element_by_id('libraryId')
-        date = self.browser.find_element_by_id('dateStrId')
-        type = self.browser.find_element_by_id('typeStrId')
-        start = self.browser.find_element_by_id('startHourStrId')
-        end = self.browser.find_element_by_id('endHourStrId')
-        button = self.browser.find_element_by_css_selector('.aui-btn')
-        self.browser.execute_script("arguments[0].value = '3';", lib)
-        self.browser.execute_script("arguments[0].value = '" + self.now + "';", date)
-        self.browser.execute_script("arguments[0].value = '1';", type)
-        self.browser.execute_script("arguments[0].value = '" + begin + "';", start)
-        self.browser.execute_script("arguments[0].value = '" + over + "';", end)
-        button.click()
+        try:
+            lib = self.browser.find_element_by_id('libraryId')
+            date = self.browser.find_element_by_id('dateStrId')
+            type = self.browser.find_element_by_id('typeStrId')
+            start = self.browser.find_element_by_id('startHourStrId')
+            end = self.browser.find_element_by_id('endHourStrId')
+            button = self.browser.find_element_by_css_selector('.aui-btn')
+            self.browser.execute_script("arguments[0].value = '3';", lib)
+            self.browser.execute_script("arguments[0].value = '" + self.now + "';", date)
+            self.browser.execute_script("arguments[0].value = '1';", type)
+            self.browser.execute_script("arguments[0].value = '" + begin + "';", start)
+            self.browser.execute_script("arguments[0].value = '" + over + "';", end)
+            button.click()
+        except:
+            print("用户名或者密码错误")
     # 找空位
     def search(self,place,begin,over):
         self.set_Cookie()
