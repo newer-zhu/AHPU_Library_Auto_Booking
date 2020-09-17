@@ -10,13 +10,14 @@ from selenium.webdriver.support import expected_conditions as EC
 import datetime
 import time
 class Auto_Occupy(object):
-    def __init__(self,username,password):
+    def __init__(self,username,password,place):
         # 浏览器对象
         option = webdriver.ChromeOptions
         option.headless = True
         self.browser = webdriver.Chrome()
         self.username = username
         self.password = password
+        self.place = place
         self.now = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d')
         #安徽工程大学图书馆楼层区域对应的roomId
         self.ahpu_lib = {
@@ -86,23 +87,20 @@ class Auto_Occupy(object):
 
     # 选择条件
     def choose(self,begin,over):
-        try:
-            lib = self.browser.find_element_by_id('libraryId')
-            date = self.browser.find_element_by_id('dateStrId')
-            type = self.browser.find_element_by_id('typeStrId')
-            start = self.browser.find_element_by_id('startHourStrId')
-            end = self.browser.find_element_by_id('endHourStrId')
-            button = self.browser.find_element_by_css_selector('.aui-btn')
-            self.browser.execute_script("arguments[0].value = '3';", lib)
-            self.browser.execute_script("arguments[0].value = '" + self.now + "';", date)
-            self.browser.execute_script("arguments[0].value = '1';", type)
-            self.browser.execute_script("arguments[0].value = '" + begin + "';", start)
-            self.browser.execute_script("arguments[0].value = '" + over + "';", end)
-            button.click()
-        except:
-            print("用户名或者密码错误")
-    # 找空位
-    def search(self,place,begin,over):
+        lib = self.browser.find_element_by_id('libraryId')
+        date = self.browser.find_element_by_id('dateStrId')
+        type = self.browser.find_element_by_id('typeStrId')
+        start = self.browser.find_element_by_id('startHourStrId')
+        end = self.browser.find_element_by_id('endHourStrId')
+        button = self.browser.find_element_by_css_selector('.aui-btn')
+        self.browser.execute_script("arguments[0].value = '3';", lib)
+        self.browser.execute_script("arguments[0].value = '" + self.now + "';", date)
+        self.browser.execute_script("arguments[0].value = '1';", type)
+        self.browser.execute_script("arguments[0].value = '" + begin + "';", start)
+        self.browser.execute_script("arguments[0].value = '" + over + "';", end)
+        button.click()
+    # 找空位，随机抢单人座位
+    def search(self,begin,over):
         self.set_Cookie()
         # 默认执行循环
         flag = True
@@ -113,9 +111,9 @@ class Auto_Occupy(object):
             self.login()
             self.set_Cookie()
             self.choose(begin,over)
-        self.browser.execute_script("gotoReserving3Page("+self.ahpu_lib[place]+");")
+        self.browser.execute_script("gotoReserving3Page("+self.ahpu_lib[self.place]+");")
         # 加载页面
-        time.sleep(0.3)
+        time.sleep(0.5)
         soup = BeautifulSoup(self.browser.page_source,'lxml')
 
         room_div = soup.find(attrs={'id': 'roomplanDiv'})
@@ -126,7 +124,6 @@ class Auto_Occupy(object):
             if len(list(desk.children)) == 2:
                 for ds in desk.children:
                     n = str(ds.attrs['class'])[-3:-2]
-                    print(n)
                     if n == '3':
                         loc = ds.contents[0].string
                         self.single.append(loc)
@@ -151,6 +148,77 @@ class Auto_Occupy(object):
         self.seated = 0
         self.single.clear()
         return flag
+    # 指定座位
+    def searchAndPoint(self,begin,over,seatLoc):
+        self.set_Cookie()
+        # 默认执行循环
+        flag = True
+        try:
+            self.choose(begin,over)
+        except:
+            print('登录过期！')
+            self.login()
+            self.set_Cookie()
+            self.choose(begin,over)
+        self.browser.execute_script("gotoReserving3Page("+self.ahpu_lib[self.place]+");")
+        # 加载页面
+        time.sleep(0.5)
+        soup = BeautifulSoup(self.browser.page_source,'lxml')
+
+        room_div = soup.find(attrs={'id': 'roomplanDiv'})
+        # 是否需要抢座，目的保证每次for循环都能执行
+        con = True
+        for desk in room_div.children:
+            if con:
+                flag = self.occupy(seatLoc);
+                con = False
+            # 单人座抢座
+            if len(list(desk.children)) == 2:
+                for ds in desk.children:
+                    n = str(ds.attrs['class'])[-3:-2]
+                    if n == '3':
+                        loc = ds.contents[0].string
+                        self.single.append(loc)
+             # 统计
+            for seat in desk.children:
+                s = str(seat.attrs['class'])
+                # 座位是否空闲看末尾的数字
+                n = s[-3:-2]
+                if n == '3':
+                    self.left += 1
+                elif n == '1':
+                    self.seated += 1
+                else:
+                    self.forbid += 1
+        print("空闲座位{}个，不可坐座位{}个，被占座位{}个，单人空闲座位{}个".format(self.left,self.forbid,self.seated,len(self.single)))
+
+        self.left = 0
+        self.forbid = 0
+        self.seated = 0
+        self.single.clear()
+        return flag
+    # 极速抢座
+    def quick_search(self,begin,over,seatLoc):
+        self.login()
+        self.set_Cookie()
+        self.choose(begin, over)
+        self.browser.execute_script("gotoReserving3Page("+self.ahpu_lib[self.place]+");")
+        # 加载页面
+        time.sleep(0.5)
+        try:
+            self.occupy(seatLoc)
+        # 没抢到就随便抢一个
+        except:
+            soup = BeautifulSoup(self.browser.page_source, 'lxml')
+            room_div = soup.find(attrs={'id': 'roomplanDiv'})
+            for desk in room_div.children:
+                # 单人座抢座
+                if len(list(desk.children)) == 2:
+                    for ds in desk.children:
+                        n = str(ds.attrs['class'])[-3:-2]
+                        if n == '3':
+                            return self.occupy(ds.contents[0].string)
+
 
     # 抢座,返回False说明不需要继续循环
     def occupy(self,location):
